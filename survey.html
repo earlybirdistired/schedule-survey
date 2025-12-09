@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>약속 설문</title>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 입력 UI */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #4dabf7;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+        button:hover {
+            background: #339af0;
+        }
+
+        /* 달력 UI */
+        #calendarBox {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .day {
+            background: white;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            user-select: none;
+            transition: 0.2s;
+        }
+
+        .day:hover {
+            transform: scale(1.05);
+        }
+
+        /* 날짜 상태 색상 */
+        .available { background: #b2f2bb !important; }
+        .unavailable { background: #ff8787 !important; }
+        .maybe { background: #ffe066 !important; }
+
+        /* 선택 모드 버튼 */
+        #modeButtons {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .modeBtn {
+            padding: 10px 12px;
+            margin: 4px;
+            border-radius: 8px;
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .modeBtn.active {
+            outline: 3px solid #228be6;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 제목 표시 -->
+<h1 id="titleDisplay">약속 설문</h1>
+
+<!-- 이름 입력 -->
+<div style="margin-top: 20px;">
+    <h2>① 이름</h2>
+    <input type="text" id="name" placeholder="이름을 입력하세요">
+</div>
+
+<!-- 여행지 입력 -->
+<div style="margin-top: 30px;">
+    <h2>② 가고 싶은 여행지</h2>
+    <input type="text" id="destination" placeholder="예: 독일마을, 다랭이마을">
+    <br><br>
+    <label>
+        <input type="checkbox" id="no_destination"> 가고 싶은 여행지가 없어요 (X)
+    </label>
+</div>
+
+<!-- 선택 모드 버튼 -->
+<div id="modeButtons">
+    <button type="button" class="modeBtn active" data-mode="가능" style="background:#b2f2bb;">가능</button>
+    <button type="button" class="modeBtn" data-mode="불가능" style="background:#ff8787;">불가능</button>
+    <button type="button" class="modeBtn" data-mode="애매함" style="background:#ffe066;">애매</button>
+    <button type="button" class="modeBtn" data-mode="none" style="background:#dee2e6;">지우기</button>
+</div>
+
+<!-- 달력 -->
+<div id="calendarBox">
+    <h2 id="monthTitle"></h2>
+    <p>날짜 클릭 또는 드래그 → <b>가능 / 불가능 / 애매 / 지우기</b></p>
+    <div class="calendar" id="calendar"></div>
+</div>
+
+<!-- 제출 버튼 -->
+<button onclick="submitSurvey()">제출하기</button>
+
+
+
+<script>
+// -------------------------------------------
+// Step 2: 제목 파라미터 가져오기
+// -------------------------------------------
+const params = new URLSearchParams(window.location.search);
+const rawTitle = params.get("title");
+const cleanTitle = rawTitle ? decodeURIComponent(rawTitle) : "제목 없음";
+
+document.getElementById("titleDisplay").innerText = cleanTitle + " 설문";
+
+// -------------------------------------------
+// Step 4: 달력 생성
+// -------------------------------------------
+const calendarEl = document.getElementById("calendar");
+
+const today = new Date();
+const year = today.getFullYear();
+const month = today.getMonth();
+
+const monthNames = [
+    "1월", "2월", "3월", "4월", "5월", "6월",
+    "7월", "8월", "9월", "10월", "11월", "12월"
+];
+document.getElementById("monthTitle").innerText = `${year}년 ${monthNames[month]}`;
+
+// 날짜 계산
+const firstDay = new Date(year, month, 1).getDay();
+const lastDate = new Date(year, month + 1, 0).getDate();
+
+let dayStatus = {};  // 날짜 상태 저장
+
+// 요일 맞추기 위한 빈칸
+for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement("div");
+    calendarEl.appendChild(empty);
+}
+
+// 날짜 생성
+for (let d = 1; d <= lastDate; d++) {
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.innerText = d;
+
+    const key = `${year}-${month + 1}-${d}`;
+    cell.dataset.date = key;
+    dayStatus[key] = "none";
+
+    calendarEl.appendChild(cell);
+}
+
+
+// -------------------------------------------
+// Step 4.5: 선택 모드 버튼 기능
+// -------------------------------------------
+let currentMode = "가능";
+
+document.querySelectorAll(".modeBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        currentMode = btn.dataset.mode;
+
+        document.querySelectorAll(".modeBtn")
+            .forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+    });
+});
+
+
+// -------------------------------------------
+// Step 4.5: 클릭 + 드래그로 날짜 연속 선택
+// -------------------------------------------
+let isDragging = false;
+
+function updateCell(cell, mode) {
+    cell.classList.remove("available", "unavailable", "maybe");
+
+    if (mode === "가능") cell.classList.add("available");
+    if (mode === "불가능") cell.classList.add("unavailable");
+    if (mode === "애매함") cell.classList.add("maybe");
+
+    dayStatus[cell.dataset.date] = mode;
+}
+
+// PC 클릭/드래그
+calendarEl.addEventListener("mousedown", (e) => {
+    if (e.target.classList.contains("day")) {
+        isDragging = true;
+        updateCell(e.target, currentMode);
+    }
+});
+calendarEl.addEventListener("mousemove", (e) => {
+    if (isDragging && e.target.classList.contains("day")) {
+        updateCell(e.target, currentMode);
+    }
+});
+document.addEventListener("mouseup", () => isDragging = false);
+
+// 모바일 터치/드래그
+calendarEl.addEventListener("touchstart", (e) => {
+    isDragging = true;
+    markTouch(e);
+});
+calendarEl.addEventListener("touchmove", (e) => {
+    if (isDragging) markTouch(e);
+});
+calendarEl.addEventListener("touchend", () => {
+    isDragging = false;
+});
+
+function markTouch(e) {
+    const touch = e.touches[0];
+    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elem && elem.classList.contains("day")) {
+        updateCell(elem, currentMode);
+    }
+}
+
+
+// -------------------------------------------
+// 제출 (Step 5에서 Sheets 저장 기능 추가 예정)
+// -------------------------------------------
+function submitSurvey() {
+    const name = document.getElementById("name").value.trim();
+    const destination = document.getElementById("destination").value.trim();
+    const no_destination = document.getElementById("no_destination").checked ? "X" : "";
+
+    if (!name) {
+        alert("이름을 입력해주세요!");
+        return;
+    }
+
+    const data = {
+        title: cleanTitle,
+        name: name,
+        date_available: dayStatus,
+        destination: destination,
+        no_destination: no_destination
+    };
+
+    console.log("[제출 데이터]", data);
+    fetch("https://script.google.com/macros/s/AKfycbxGxqNX_IjzakoIBRnPfBh-4iij_Jl6wYdv266hYFiqOMpOonWFnxo_lA8hemPk3kwW/exec",{
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.json())
+    .then(result => {
+        alert("제출이 완료되었습니다! 😊");
+    })
+    .catch(err => {
+        console.error(err);
+        alert("오류가 발생했습니다. 다시 시도해주세요.");
+    });
+}
+
+}
+</script>
+
+</body>
+</html>

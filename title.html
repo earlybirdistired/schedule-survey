@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>약속 설문 생성</title>
+
+<style>
+    body {
+        font-family: 'Noto Sans KR', sans-serif;
+        max-width: 500px;
+        margin: 50px auto;
+        text-align: center;
+    }
+
+    input {
+        width: 90%;
+        padding: 12px;
+        font-size: 18px;
+        margin-top: 20px;
+        border-radius: 8px;
+        border: 1px solid #aaa;
+    }
+
+    button {
+        margin-top: 20px;
+        padding: 12px 20px;
+        font-size: 18px;
+        background: #4dabf7;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #339af0;
+    }
+
+    #linkBox {
+        margin-top: 25px;
+        padding: 15px;
+        background: #f1f3f5;
+        border-radius: 10px;
+        display: none;
+    }
+
+    #copyBtn {
+        margin-top: 10px;
+        padding: 10px 15px;
+        background: #51cf66;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    #copyBtn:hover {
+        background: #40c057;
+    }
+</style>
+
+</head>
+<body>
+
+<h1>약속 설문 생성하기</h1>
+
+<p>설문 제목을 입력해주세요!</p>
+<input type="text" id="titleInput" placeholder="예: 연말여행">
+
+<button onclick="generate()">생성</button>
+
+<div id="linkBox">
+    <p><b>공유 링크가 생성되었습니다!</b></p>
+    <input type="text" id="shareLink" style="width:100%; padding:10px;" readonly>
+    <button id="copyBtn" onclick="copyLink()">📋 링크 복사하기</button>
+</div>
+
+<script>
+function generate() {
+    const title = document.getElementById("titleInput").value.trim();
+
+    if (!title) {
+        alert("제목을 입력해주세요!");
+        return;
+    }
+
+    // 제목을 URL 파라미터로 넣어서 설문 링크 생성
+    const url = window.location.origin + "/survey.html?title=" + encodeURIComponent(title);
+
+    // 화면에 보여주기
+    document.getElementById("linkBox").style.display = "block";
+    document.getElementById("shareLink").value = url;
+}
+
+function copyLink() {
+    const link = document.getElementById("shareLink");
+    link.select();
+    document.execCommand("copy");
+    alert("링크가 복사되었습니다! 카톡 등으로 붙여넣어주세요.");
+}
+</script>
+
+</body>
+</html>
