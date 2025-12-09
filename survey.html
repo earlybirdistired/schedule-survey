@@ -277,10 +277,14 @@ function submitSurvey() {
     };
 
     console.log("[제출 데이터]", data);
-    fetch("https://script.google.com/macros/s/AKfycby3-SdBdkJ2bCpIg7hP95UafZbHShxqYYotvVJNyHoKeX9SED73oMEU3dVRc46pyf-QLQ/exec",{
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
+    fetch("https://izymighgwabdngivowbb.supabase.co",{
+        headers: {
+            "apikey": "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
+            "Authorization": "sb_secret_Ux0vB0rYcYOlAhedfDOZdQ_is0pwgbE",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        },
+        body: JSON.stringify(data)
     })
     .then(res => res.json())
     .then(result => {
@@ -295,6 +299,7 @@ function submitSurvey() {
 
 </body>
 </html>
+
 
 
 
