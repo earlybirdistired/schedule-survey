@@ -84,9 +84,8 @@ function generate() {
         return;
     }
 
-    // 제목을 URL 파라미터로 넣어서 설문 링크 생성
-    const url = window.location.origin + "/survey.html?title=" + encodeURIComponent(title);
-
+    const baseURL = "https://earlybirdistired.github.io/schedule-survey/";
+     const url = baseURL + "survey.html?title=" + encodeURIComponent(title);
     // 화면에 보여주기
     document.getElementById("linkBox").style.display = "block";
     document.getElementById("shareLink").value = url;
