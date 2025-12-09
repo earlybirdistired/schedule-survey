@@ -277,7 +277,7 @@ function submitSurvey() {
     };
 
     console.log("[제출 데이터]", data);
-    fetch("https://script.google.com/macros/s/AKfycbxGxqNX_IjzakoIBRnPfBh-4iij_Jl6wYdv266hYFiqOMpOonWFnxo_lA8hemPk3kwW/exec",{
+    fetch("https://script.google.com/macros/s/AKfycbx3vaOSc9l3p7wbLfIzSRKkrfBFbr4wUsLPyLIhoIBYxuu9RYu1s1nPV3rYXWQBCwDWNw/exec",{
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
@@ -295,4 +295,5 @@ function submitSurvey() {
 
 </body>
 </html>
+
 
