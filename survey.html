@@ -12,84 +12,40 @@
             padding: 20px;
             background: #f8f9fa;
         }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        h1 { text-align: center; margin-bottom: 20px; }
         input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+            width: 100%; padding: 12px; font-size: 16px;
+            border-radius: 8px; border: 1px solid #ccc;
         }
-
         button {
-            width: 100%;
-            padding: 15px;
-            background: #4dabf7;
-            color: white;
-            font-size: 18px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 30px;
+            width: 100%; padding: 15px; background: #4dabf7;
+            color: white; font-size: 18px; border: none;
+            border-radius: 10px; cursor: pointer; margin-top: 30px;
         }
-        button:hover {
-            background: #339af0;
-        }
+        button:hover { background: #339af0; }
 
-        #calendarBox {
-            background: white;
-            padding: 18px;
-            border-radius: 12px;
-            margin-top: 30px;
-        }
-
+        #calendarBox { background: white; padding: 18px; border-radius: 12px; margin-top: 30px; }
         .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 15px;
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 8px; margin-top: 15px;
         }
-
         .day {
-            background: white;
-            padding: 12px;
-            text-align: center;
-            border-radius: 10px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            user-select: none;
-            transition: 0.2s;
+            background: white; padding: 12px; text-align: center;
+            border-radius: 10px; cursor: pointer; border: 1px solid #ddd;
+            user-select: none; transition: 0.2s;
         }
-
-        .day:hover {
-            transform: scale(1.05);
-        }
+        .day:hover { transform: scale(1.05); }
 
         .available { background: #b2f2bb !important; }
         .unavailable { background: #ff8787 !important; }
         .maybe { background: #ffe066 !important; }
 
-        #modeButtons {
-            margin-top: 20px;
-            text-align: center;
-        }
-
+        #modeButtons { margin-top: 20px; text-align: center; }
         .modeBtn {
-            padding: 10px 12px;
-            margin: 4px;
-            border-radius: 8px;
-            border: none;
-            font-size: 15px;
-            cursor: pointer;
+            padding: 10px 12px; margin: 4px; border-radius: 8px;
+            border: none; font-size: 15px; cursor: pointer;
         }
-
-        .modeBtn.active {
-            outline: 3px solid #228be6;
-        }
+        .modeBtn.active { outline: 3px solid #228be6; }
     </style>
 </head>
 
@@ -128,42 +84,50 @@
     <div class="calendar" id="calendar"></div>
 </div>
 
-<button onclick="submitSurvey()">제출하기</button>
+<button id="submitBtn" onclick="submitSurvey()">제출하기</button>
 
 <script>
-// --------------------------------------------------
-// 제목 파라미터 불러오기
-// --------------------------------------------------
+/* --------------------------
+  기본 설정
+----------------------------- */
+const supabaseUrl = "https://izymighgwabdngivowbb.supabase.co";
+const apiKey = "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998";
+
+let oldRows = [];   // 수정 모드일 때 기존 DB row 저장
+let isEditMode = false;
+
+/* --------------------------
+   URL 파라미터 (title, token)
+----------------------------- */
 const params = new URLSearchParams(window.location.search);
 const rawTitle = params.get("title");
-const cleanTitle = rawTitle ? decodeURIComponent(rawTitle) : "제목 없음";
+const token = params.get("token"); // 수정 모드에 필요
 
+const cleanTitle = rawTitle ? decodeURIComponent(rawTitle) : "제목 없음";
 document.getElementById("titleDisplay").innerText = cleanTitle + " 설문";
 
-// --------------------------------------------------
-// 달력 생성
-// --------------------------------------------------
+/* --------------------------
+   달력 생성
+----------------------------- */
 const calendarEl = document.getElementById("calendar");
-
 const today = new Date();
 const year = today.getFullYear();
 const month = today.getMonth();
 
-const monthNames = [
-    "1월","2월","3월","4월","5월","6월",
-    "7월","8월","9월","10월","11월","12월"
-];
+const monthNames = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 document.getElementById("monthTitle").innerText = `${year}년 ${monthNames[month]}`;
 
 const firstDay = new Date(year, month, 1).getDay();
 const lastDate = new Date(year, month + 1, 0).getDate();
 
-let dayStatus = {};
+let dayStatus = {}; // 날짜 상태 저장
 
+// 빈칸
 for (let i = 0; i < firstDay; i++) {
     calendarEl.appendChild(document.createElement("div"));
 }
 
+// 날짜 셀 생성
 for (let d = 1; d <= lastDate; d++) {
     const cell = document.createElement("div");
     cell.className = "day";
@@ -176,11 +140,10 @@ for (let d = 1; d <= lastDate; d++) {
     calendarEl.appendChild(cell);
 }
 
-// --------------------------------------------------
-// 선택 모드 버튼
-// --------------------------------------------------
+/* --------------------------
+   선택 모드 버튼
+----------------------------- */
 let currentMode = "가능";
-
 document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("click", () => {
         currentMode = btn.dataset.mode;
@@ -189,27 +152,22 @@ document.querySelectorAll(".modeBtn").forEach(btn => {
     });
 });
 
-// --------------------------------------------------
-// 날짜 클릭 및 드래그 선택
-// --------------------------------------------------
+/* --------------------------
+   날짜 클릭/드래그
+----------------------------- */
 let isDragging = false;
 
-function updateCell(cell, mode) {
-
-    // 색 초기화
+function applyCellColor(cell, status) {
     cell.classList.remove("available", "unavailable", "maybe");
 
-    // 상태 적용
-    if (mode === "가능") cell.classList.add("available");
-    if (mode === "불가능") cell.classList.add("unavailable");
-    if (mode === "애매함") cell.classList.add("maybe");
+    if (status === "가능") cell.classList.add("available");
+    if (status === "불가능") cell.classList.add("unavailable");
+    if (status === "애매함") cell.classList.add("maybe");
+}
 
-    // ⭐ 중요: dayStatus를 정확히 저장
-    if (mode === "none") {
-        dayStatus[cell.dataset.date] = "none";
-    } else {
-        dayStatus[cell.dataset.date] = mode;
-    }
+function updateCell(cell, mode) {
+    applyCellColor(cell, mode);
+    dayStatus[cell.dataset.date] = mode;
 }
 
 calendarEl.addEventListener("mousedown", e => {
@@ -225,35 +183,47 @@ calendarEl.addEventListener("mousemove", e => {
 });
 document.addEventListener("mouseup", () => isDragging = false);
 
-calendarEl.addEventListener("touchstart", e => {
-    isDragging = true;
-    markTouch(e);
-});
-calendarEl.addEventListener("touchmove", e => {
-    if (isDragging) markTouch(e);
-});
-calendarEl.addEventListener("touchend", () => isDragging = false);
+/* --------------------------
+   수정 모드: 기존 제출 데이터 불러오기
+----------------------------- */
+async function loadOldData() {
+    if (!token) return;
 
-function markTouch(e) {
-    const touch = e.touches[0];
-    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (elem && elem.classList.contains("day")) {
-        updateCell(elem, currentMode);
-    }
+    const res = await fetch(
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${cleanTitle}&participant_token=eq.${token}`,
+        { headers: { apikey: apiKey, Authorization: "Bearer " + apiKey } }
+    );
+
+    oldRows = await res.json();
+    if (oldRows.length === 0) return;
+
+    isEditMode = true;
+    document.getElementById("submitBtn").innerText = "수정하기";
+
+    // 이름 / 여행지 / 체크
+    document.getElementById("name").value = oldRows[0].name;
+    document.getElementById("destination").value = oldRows[0].destination;
+    document.getElementById("no_destination").checked = oldRows[0].no_destination === "X";
+
+    // 날짜 상태 반영
+    oldRows.forEach(r => {
+        dayStatus[r.date] = r.status;
+        const cell = document.querySelector(`[data-date="${r.date}"]`);
+        if (cell) applyCellColor(cell, r.status);
+    });
 }
 
-// --------------------------------------------------
-// Supabase 저장 기능
-// --------------------------------------------------
+loadOldData();
+
+/* --------------------------
+   제출 / 수정 (POST / PATCH)
+----------------------------- */
 function submitSurvey() {
     const name = document.getElementById("name").value.trim();
     const destination = document.getElementById("destination").value.trim();
     const no_destination = document.getElementById("no_destination").checked ? "X" : "";
 
-    if (!name) {
-        alert("이름을 입력해주세요!");
-        return;
-    }
+    if (!name) { alert("이름을 입력해주세요!"); return; }
 
     const rows = Object.keys(dayStatus).map(date => ({
         title: cleanTitle,
@@ -261,41 +231,41 @@ function submitSurvey() {
         date,
         status: dayStatus[date],
         destination,
-        no_destination
+        no_destination,
+        participant_token: token ? token : crypto.randomUUID()
     }));
 
-    console.log("INSERT rows:", rows);
+    // 수정 모드 → DELETE 후 INSERT (가장 안정적)
+    if (isEditMode) {
+        fetch(`${supabaseUrl}/rest/v1/surveys?participant_token=eq.${token}`, {
+            method: "DELETE",
+            headers: {
+                apikey: apiKey,
+                Authorization: "Bearer " + apiKey
+            }
+        }).then(() => insertRows(rows));
+    } else {
+        insertRows(rows);
+    }
+}
 
-    fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/surveys", {
-    method: "POST",
-    headers: {
-        "apikey": "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
-        "Authorization": "Bearer sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
-    },
-    body: JSON.stringify(rows)
-})
-
-    .then(res => {
-        if (res.ok) {
-            alert("제출 완료!");
-            window.location.href = `result.html?key=${cleanTitle}&token=${returned_token}`;
-        } else {
-            return res.text().then(msg => {
-                alert("저장 실패: " + res.status + "\n" + msg);
-                console.error(msg);
-            });
-        }
+function insertRows(rows) {
+    fetch(`${supabaseUrl}/rest/v1/surveys`, {
+        method: "POST",
+        headers: {
+            "apikey": apiKey,
+            "Authorization": "Bearer " + apiKey,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(rows)
     })
-    .catch(err => {
-        console.error(err);
-        alert("오류 발생: " + err);
+    .then(() => {
+        alert(isEditMode ? "수정 완료!" : "제출 완료!");
+        const tokenVal = rows[0].participant_token;
+        window.location.href = `result.html?title=${cleanTitle}&token=${tokenVal}`;
     });
 }
 </script>
+
 </body>
 </html>
-
-
-
