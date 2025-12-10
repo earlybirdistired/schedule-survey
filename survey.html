@@ -250,7 +250,7 @@ function submitSurvey() {
     const data = {
         title: cleanTitle,
         name,
-        date_available: dayStatus,
+        date_available: dayStatus,   // JSON OK
         destination,
         no_destination
     };
@@ -269,17 +269,21 @@ function submitSurvey() {
     })
     .then(res => {
         if (res.ok) {
-            alert("제출이 완료되었습니다! 😊");
+            alert("제출 완료!");
         } else {
-            alert("저장 실패: " + res.status);
+            return res.text().then(msg => {
+                alert("저장 실패: " + res.status + "\n" + msg);
+                console.error(msg);
+            });
         }
     })
     .catch(err => {
         console.error(err);
-        alert("오류가 발생했습니다. 다시 시도해주세요.");
+        alert("오류 발생: " + err);
     });
 }
 </script>
 
 </body>
 </html>
+
