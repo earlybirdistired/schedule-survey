@@ -266,7 +266,7 @@ function submitSurvey() {
 
     console.log("INSERT rows:", rows);
 
-    fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/surveys", {
+    fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/survey_dates", {
         method: "POST",
         headers: {
             "apikey": "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
@@ -274,7 +274,7 @@ function submitSurvey() {
             "Content-Type": "application/json",
             "Prefer": "return=minimal"
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(rows)
     })
     .then(res => {
         if (res.ok) {
@@ -294,3 +294,4 @@ function submitSurvey() {
 </script>
 </body>
 </html>
+
