@@ -280,6 +280,7 @@ function submitSurvey() {
     .then(res => {
         if (res.ok) {
             alert("제출 완료!");
+            window.location.href = `result.html?key=${cleanTitle}&token=${returned_token}`;
         } else {
             return res.text().then(msg => {
                 alert("저장 실패: " + res.status + "\n" + msg);
@@ -295,5 +296,6 @@ function submitSurvey() {
 </script>
 </body>
 </html>
+
 
 
