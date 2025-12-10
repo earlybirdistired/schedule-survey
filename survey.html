@@ -195,13 +195,21 @@ document.querySelectorAll(".modeBtn").forEach(btn => {
 let isDragging = false;
 
 function updateCell(cell, mode) {
-    cell.classList.remove("available","unavailable","maybe");
 
+    // 색 초기화
+    cell.classList.remove("available", "unavailable", "maybe");
+
+    // 상태 적용
     if (mode === "가능") cell.classList.add("available");
     if (mode === "불가능") cell.classList.add("unavailable");
     if (mode === "애매함") cell.classList.add("maybe");
 
-    dayStatus[cell.dataset.date] = mode;
+    // ⭐ 중요: dayStatus를 정확히 저장
+    if (mode === "none") {
+        dayStatus[cell.dataset.date] = "none";
+    } else {
+        dayStatus[cell.dataset.date] = mode;
+    }
 }
 
 calendarEl.addEventListener("mousedown", e => {
@@ -286,4 +294,5 @@ function submitSurvey() {
 
 </body>
 </html>
+
 
