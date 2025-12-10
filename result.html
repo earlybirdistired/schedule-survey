@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>설문 결과 요약</title>
+
+<style>
+    body {
+        font-family: 'Noto Sans KR', sans-serif;
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+        background: #f8f9fa;
+    }
+    h1 { text-align: center; margin-bottom: 30px; }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+        text-align: center;
+    }
+    th { background: #4dabf7; color: white; }
+
+    tr:hover { background: #e7f5ff; }
+
+    #bestDates {
+        background: #d0ebff;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    #myResult {
+        background: #fff3bf;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        display: none;
+    }
+</style>
+
+</head>
+<body>
+
+<h1 id="title"></h1>
+
+<!-- 내 정보 표시 박스 -->
+<div id="myResult">
+    <h2>🧑 내 제출 내용</h2>
+    <p id="myInfo"></p>
+    <button id="editBtn">수정하기</button>
+</div>
+
+<div id="bestDates">
+    <h2>📌 최적 날짜 추천</h2>
+    <ul id="bestList"></ul>
+</div>
+
+<h2>📅 날짜별 요약</h2>
+<table>
+    <thead>
+        <tr>
+            <th>날짜</th>
+            <th>가능</th>
+            <th>애매</th>
+            <th>불가능</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+// Supabase 설정
+const supabaseUrl = "https://izymighgwabdngivowbb.supabase.co";
+const apiKey = "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998";
+
+// URL 파라미터 읽기
+const params = new URLSearchParams(window.location.search);
+const title = params.get("title");
+const token = params.get("token");  // <-- 추가됨
+
+document.getElementById("title").innerText = title + " 설문 결과";
+
+// 개인 데이터 UI 요소
+const myResultBox = document.getElementById("myResult");
+const myInfoBox = document.getElementById("myInfo");
+const editBtn = document.getElementById("editBtn");
+
+// 1) 전체 데이터 불러오기
+async function loadAll() {
+    const res = await fetch(
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(title)}`, {
+            headers: { apikey: apiKey, Authorization: "Bearer " + apiKey }
+        }
+    );
+    return res.json();
+}
+
+// 2) 특정 유저 데이터 불러오기
+async function loadMyData() {
+    if (!token) return null;
+    const res = await fetch(
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(title)}&participant_token=eq.${token}`, {
+            headers: { apikey: apiKey, Authorization: "Bearer " + apiKey }
+        }
+    );
+    return res.json();
+}
+
+async function start() {
+    const allRows = await loadAll();
+    summarize(allRows);
+
+    const myRows = await loadMyData();
+
+    // token 있을 때만 내 정보 표시
+    if (myRows && myRows.length > 0) {
+        const myName = myRows[0].name;
+        myInfoBox.innerHTML = `<b>${myName}</b>님이 제출한 내용을 보고 있습니다.`;
+        myResultBox.style.display = "block";
+
+        editBtn.onclick = () => {
+            // 설문 수정 페이지로 이동
+            window.location.href = `survey.html?title=${encodeURIComponent(title)}&token=${token}`;
+        };
+    }
+}
+
+// 날짜별 요약 + 최적 날짜 계산
+function summarize(rows) {
+    const summary = {};
+
+    rows.forEach(r => {
+        if (!summary[r.date]) summary[r.date] = { available: 0, maybe: 0, unavailable: 0 };
+        if (r.status === "가능") summary[r.date].available++;
+        if (r.status === "애매함") summary[r.date].maybe++;
+        if (r.status === "불가능") summary[r.date].unavailable++;
+    });
+
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    Object.keys(summary).sort().forEach(date => {
+        const s = summary[date];
+        tbody.innerHTML += `
+            <tr>
+                <td>${date}</td>
+                <td>${s.available}</td>
+                <td>${s.maybe}</td>
+                <td>${s.unavailable}</td>
+            </tr>
+        `;
+    });
+
+    // 점수 계산
+    const scored = Object.keys(summary).map(date => {
+        const s = summary[date];
+        const score = s.available * 2 + s.maybe * 0 - s.unavailable * 100;
+        return { date, score };
+    }).sort((a, b) => b.score - a.score);
+
+    document.getElementById("bestList").innerHTML =
+        scored.slice(0, 3).map(item => `<li>${item.date} (점수: ${item.score})</li>`).join("");
+}
+
+start();
+</script>
+
+</body>
+</html>
