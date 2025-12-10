@@ -266,16 +266,17 @@ function submitSurvey() {
 
     console.log("INSERT rows:", rows);
 
-    fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/survey_dates", {
-        method: "POST",
-        headers: {
-            "apikey": "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
-            "Authorization": "Bearer sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-        },
-        body: JSON.stringify(rows)
-    })
+    fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/surveys", {
+    method: "POST",
+    headers: {
+        "apikey": "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
+        "Authorization": "Bearer sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    },
+    body: JSON.stringify(rows)
+})
+
     .then(res => {
         if (res.ok) {
             alert("제출 완료!");
@@ -294,4 +295,5 @@ function submitSurvey() {
 </script>
 </body>
 </html>
+
 
