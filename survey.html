@@ -190,7 +190,7 @@ async function loadOldData() {
     if (!token) return;
 
     const res = await fetch(
-        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(cleanTitle)}&participant_token=eq.${token}`,
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(rawTitle)}&participant_token=eq.${token}`,
         { headers: { apikey: apiKey, Authorization: "Bearer " + apiKey } }
     );
 
@@ -270,3 +270,4 @@ function insertRows(rows) {
 
 </body>
 </html>
+
