@@ -28,7 +28,6 @@
         text-align: center;
     }
     th { background: #4dabf7; color: white; }
-
     tr:hover { background: #e7f5ff; }
 
     #bestDates {
@@ -45,6 +44,16 @@
         margin-bottom: 30px;
         display: none;
     }
+
+    #editBtn {
+        background: #4dabf7;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        margin-top: 10px;
+    }
 </style>
 
 </head>
@@ -52,11 +61,12 @@
 
 <h1 id="title"></h1>
 
-<!-- 내 정보 표시 박스 -->
+<!-- 내 제출 정보 박스 -->
 <div id="myResult">
-    <h2>🧑 내 제출 내용</h2>
+    <h2>🧑 내 제출 정보</h2>
     <p id="myInfo"></p>
-    <button id="editBtn">수정하기</button>
+    <p id="myDates"></p>
+    <button id="editBtn">✏ 수정하기</button>
 </div>
 
 <div id="bestDates">
@@ -82,16 +92,17 @@
 const supabaseUrl = "https://izymighgwabdngivowbb.supabase.co";
 const apiKey = "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998";
 
-// URL 파라미터 읽기
+// URL 파라미터
 const params = new URLSearchParams(window.location.search);
 const title = params.get("title");
-const token = params.get("token");  // <-- 추가됨
+const token = params.get("token");
 
 document.getElementById("title").innerText = title + " 설문 결과";
 
-// 개인 데이터 UI 요소
+// UI 요소
 const myResultBox = document.getElementById("myResult");
 const myInfoBox = document.getElementById("myInfo");
+const myDatesBox = document.getElementById("myDates");
 const editBtn = document.getElementById("editBtn");
 
 // 1) 전체 데이터 불러오기
@@ -104,13 +115,13 @@ async function loadAll() {
     return res.json();
 }
 
-// 2) 특정 유저 데이터 불러오기
+// 2) 내 데이터 불러오기
 async function loadMyData() {
     if (!token) return null;
+
     const res = await fetch(
-        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(title)}&participant_token=eq.${token}`, {
-            headers: { apikey: apiKey, Authorization: "Bearer " + apiKey }
-        }
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(title)}&participant_token=eq.${token}`,
+        { headers: { apikey: apiKey, Authorization: "Bearer " + apiKey } }
     );
     return res.json();
 }
@@ -121,20 +132,29 @@ async function start() {
 
     const myRows = await loadMyData();
 
-    // token 있을 때만 내 정보 표시
+    // token 있을 때만 표시
     if (myRows && myRows.length > 0) {
-        const myName = myRows[0].name;
-        myInfoBox.innerHTML = `<b>${myName}</b>님이 제출한 내용을 보고 있습니다.`;
+        const name = myRows[0].name;
+
+        myInfoBox.innerHTML = `<b>${name}</b>님이 제출한 결과입니다.`;
+
+        // 날짜 요약 구성
+        const dateList = myRows
+            .map(r => `${r.date} → ${r.status}`)
+            .join("<br>");
+
+        myDatesBox.innerHTML = dateList;
+
         myResultBox.style.display = "block";
 
+        // 수정하기 버튼
         editBtn.onclick = () => {
-            // 설문 수정 페이지로 이동
             window.location.href = `survey.html?title=${encodeURIComponent(title)}&token=${token}`;
         };
     }
 }
 
-// 날짜별 요약 + 최적 날짜 계산
+// 날짜별 요약 + 추천 날짜
 function summarize(rows) {
     const summary = {};
 
@@ -156,14 +176,12 @@ function summarize(rows) {
                 <td>${s.available}</td>
                 <td>${s.maybe}</td>
                 <td>${s.unavailable}</td>
-            </tr>
-        `;
+            </tr>`;
     });
 
-    // 점수 계산
     const scored = Object.keys(summary).map(date => {
         const s = summary[date];
-        const score = s.available * 2 + s.maybe * 0 - s.unavailable * 100;
+        const score = s.available * 2 - s.unavailable * 100;
         return { date, score };
     }).sort((a, b) => b.score - a.score);
 
