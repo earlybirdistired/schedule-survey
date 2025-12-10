@@ -255,15 +255,16 @@ function submitSurvey() {
         return;
     }
 
-    const data = {
+    const rows = Object.keys(dayStatus).map(date => ({
         title: cleanTitle,
         name,
-        date_available: dayStatus,   // JSON OK
+        date,
+        status: dayStatus[date],
         destination,
         no_destination
-    };
+    }));
 
-    console.log("[제출 데이터]", data);
+    console.log("INSERT rows:", rows);
 
     fetch("https://izymighgwabdngivowbb.supabase.co/rest/v1/surveys", {
         method: "POST",
@@ -294,5 +295,6 @@ function submitSurvey() {
 
 </body>
 </html>
+
 
 
