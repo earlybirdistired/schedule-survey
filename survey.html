@@ -1,101 +1,270 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>약속 설문 생성</title>
+    <meta charset="UTF-8">
+    <title>약속 설문</title>
 
-<style>
-    body {
-        font-family: 'Noto Sans KR', sans-serif;
-        max-width: 500px;
-        margin: 50px auto;
-        text-align: center;
-    }
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        h1 { text-align: center; margin-bottom: 20px; }
+        input[type="text"] {
+            width: 100%; padding: 12px; font-size: 16px;
+            border-radius: 8px; border: 1px solid #ccc;
+        }
+        button {
+            width: 100%; padding: 15px; background: #4dabf7;
+            color: white; font-size: 18px; border: none;
+            border-radius: 10px; cursor: pointer; margin-top: 30px;
+        }
+        button:hover { background: #339af0; }
 
-    input {
-        width: 90%;
-        padding: 12px;
-        font-size: 18px;
-        margin-top: 20px;
-        border-radius: 8px;
-        border: 1px solid #aaa;
-    }
+        #calendarBox { background: white; padding: 18px; border-radius: 12px; margin-top: 30px; }
+        .calendar {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 8px; margin-top: 15px;
+        }
+        .day {
+            background: white; padding: 12px; text-align: center;
+            border-radius: 10px; cursor: pointer; border: 1px solid #ddd;
+            user-select: none; transition: 0.2s;
+        }
+        .day:hover { transform: scale(1.05); }
 
-    button {
-        margin-top: 20px;
-        padding: 12px 20px;
-        font-size: 18px;
-        background: #4dabf7;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-    }
+        .available { background: #b2f2bb !important; }
+        .unavailable { background: #ff8787 !important; }
+        .maybe { background: #ffe066 !important; }
 
-    button:hover {
-        background: #339af0;
-    }
-
-    #linkBox {
-        margin-top: 25px;
-        padding: 15px;
-        background: #f1f3f5;
-        border-radius: 10px;
-        display: none;
-    }
-
-    #copyBtn {
-        margin-top: 10px;
-        padding: 10px 15px;
-        background: #51cf66;
-        border: none;
-        color: white;
-        border-radius: 8px;
-        cursor: pointer;
-    }
-
-    #copyBtn:hover {
-        background: #40c057;
-    }
-</style>
-
+        #modeButtons { margin-top: 20px; text-align: center; }
+        .modeBtn {
+            padding: 10px 12px; margin: 4px; border-radius: 8px;
+            border: none; font-size: 15px; cursor: pointer;
+        }
+        .modeBtn.active { outline: 3px solid #228be6; }
+    </style>
 </head>
+
 <body>
 
-<h1>약속 설문 생성하기</h1>
+<h1 id="titleDisplay">약속 설문</h1>
 
-<p>설문 제목을 입력해주세요!</p>
-<input type="text" id="titleInput" placeholder="예: 연말여행">
-
-<button onclick="generate()">생성</button>
-
-<div id="linkBox">
-    <p><b>공유 링크가 생성되었습니다!</b></p>
-    <input type="text" id="shareLink" style="width:100%; padding:10px;" readonly>
-    <button id="copyBtn" onclick="copyLink()">📋 링크 복사하기</button>
+<!-- 이름 입력 -->
+<div style="margin-top: 20px;">
+    <h2>① 이름</h2>
+    <input type="text" id="name" placeholder="이름을 입력하세요">
 </div>
 
+<!-- 여행지 입력 -->
+<div style="margin-top: 30px;">
+    <h2>② 가고 싶은 여행지</h2>
+    <input type="text" id="destination" placeholder="예: 남해, 제주도">
+    <br><br>
+    <label>
+        <input type="checkbox" id="no_destination"> 가고 싶은 여행지가 없어요 (X)
+    </label>
+</div>
+
+<!-- 선택 모드 버튼 -->
+<div id="modeButtons">
+    <button type="button" class="modeBtn active" data-mode="가능" style="background:#b2f2bb;">가능</button>
+    <button type="button" class="modeBtn" data-mode="불가능" style="background:#ff8787;">불가능</button>
+    <button type="button" class="modeBtn" data-mode="애매함" style="background:#ffe066;">애매</button>
+    <button type="button" class="modeBtn" data-mode="none" style="background:#dee2e6;">지우기</button>
+</div>
+
+<!-- 달력 -->
+<div id="calendarBox">
+    <h2 id="monthTitle"></h2>
+    <p>날짜 클릭 또는 드래그 → <b>가능 / 불가능 / 애매 / 지우기</b></p>
+    <div class="calendar" id="calendar"></div>
+</div>
+
+<button id="submitBtn" onclick="submitSurvey()">제출하기</button>
+
 <script>
-function generate() {
-    const title = document.getElementById("titleInput").value.trim();
+/* --------------------------
+  기본 설정
+----------------------------- */
+const supabaseUrl = "https://izymighgwabdngivowbb.supabase.co";
+const apiKey = "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998";
 
-    if (!title) {
-        alert("제목을 입력해주세요!");
-        return;
-    }
+let oldRows = [];   // 수정 모드일 때 기존 DB row 저장
+let isEditMode = false;
 
-    const baseURL = "https://earlybirdistired.github.io/schedule-survey/";
-    const url = baseURL + "survey.html?title=" + encodeURIComponent(title);
-    // 화면에 보여주기
-    document.getElementById("linkBox").style.display = "block";
-    document.getElementById("shareLink").value = url;
+/* --------------------------
+   URL 파라미터 (title, token)
+----------------------------- */
+const params = new URLSearchParams(window.location.search);
+const rawTitle = params.get("title");
+const token = params.get("token"); // 수정 모드에 필요
+
+const cleanTitle = rawTitle ? decodeURIComponent(rawTitle) : "제목 없음";
+document.getElementById("titleDisplay").innerText = cleanTitle + " 설문";
+
+/* --------------------------
+   달력 생성
+----------------------------- */
+const calendarEl = document.getElementById("calendar");
+const today = new Date();
+const year = today.getFullYear();
+const month = today.getMonth();
+
+const monthNames = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+document.getElementById("monthTitle").innerText = `${year}년 ${monthNames[month]}`;
+
+const firstDay = new Date(year, month, 1).getDay();
+const lastDate = new Date(year, month + 1, 0).getDate();
+
+let dayStatus = {}; // 날짜 상태 저장
+
+// 빈칸
+for (let i = 0; i < firstDay; i++) {
+    calendarEl.appendChild(document.createElement("div"));
 }
 
-function copyLink() {
-    const link = document.getElementById("shareLink");
-    link.select();
-    document.execCommand("copy");
-    alert("링크가 복사되었습니다! 카톡 등으로 붙여넣어주세요.");
+// 날짜 셀 생성
+for (let d = 1; d <= lastDate; d++) {
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.innerText = d;
+
+    const key = `${year}-${month + 1}-${d}`;
+    cell.dataset.date = key;
+    dayStatus[key] = "none";
+
+    calendarEl.appendChild(cell);
+}
+
+/* --------------------------
+   선택 모드 버튼
+----------------------------- */
+let currentMode = "가능";
+document.querySelectorAll(".modeBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        currentMode = btn.dataset.mode;
+        document.querySelectorAll(".modeBtn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+    });
+});
+
+/* --------------------------
+   날짜 클릭/드래그
+----------------------------- */
+let isDragging = false;
+
+function applyCellColor(cell, status) {
+    cell.classList.remove("available", "unavailable", "maybe");
+
+    if (status === "가능") cell.classList.add("available");
+    if (status === "불가능") cell.classList.add("unavailable");
+    if (status === "애매함") cell.classList.add("maybe");
+}
+
+function updateCell(cell, mode) {
+    applyCellColor(cell, mode);
+    dayStatus[cell.dataset.date] = mode;
+}
+
+calendarEl.addEventListener("mousedown", e => {
+    if (e.target.classList.contains("day")) {
+        isDragging = true;
+        updateCell(e.target, currentMode);
+    }
+});
+calendarEl.addEventListener("mousemove", e => {
+    if (isDragging && e.target.classList.contains("day")) {
+        updateCell(e.target, currentMode);
+    }
+});
+document.addEventListener("mouseup", () => isDragging = false);
+
+/* --------------------------
+   수정 모드: 기존 제출 데이터 불러오기
+----------------------------- */
+async function loadOldData() {
+    if (!token) return;
+
+    const res = await fetch(
+        `${supabaseUrl}/rest/v1/surveys?title=eq.${encodeURIComponent(cleanTitle)}&participant_token=eq.${token}`,
+        { headers: { apikey: apiKey, Authorization: "Bearer " + apiKey } }
+    );
+
+    oldRows = await res.json();
+    if (oldRows.length === 0) return;
+
+    isEditMode = true;
+    document.getElementById("submitBtn").innerText = "수정하기";
+
+    // 기본 정보 채우기
+    document.getElementById("name").value = oldRows[0].name;
+    document.getElementById("destination").value = oldRows[0].destination;
+    document.getElementById("no_destination").checked =
+        oldRows[0].no_destination === "X";
+
+    // 날짜 상태 표시
+    oldRows.forEach(r => {
+        dayStatus[r.date] = r.status;
+        const cell = document.querySelector(`[data-date="${r.date}"]`);
+        if (cell) applyCellColor(cell, r.status);
+    });
+}
+
+loadOldData();
+
+/* --------------------------
+   제출 / 수정 (POST / PATCH)
+----------------------------- */
+function submitSurvey() {
+    const name = document.getElementById("name").value.trim();
+    const destination = document.getElementById("destination").value.trim();
+    const no_destination = document.getElementById("no_destination").checked ? "X" : "";
+
+    if (!name) { alert("이름을 입력해주세요!"); return; }
+
+    const rows = Object.keys(dayStatus).map(date => ({
+        title: cleanTitle,
+        name,
+        date,
+        status: dayStatus[date],
+        destination,
+        no_destination,
+        participant_token: token ? token : crypto.randomUUID()
+    }));
+
+    // 수정 모드 → DELETE 후 INSERT (가장 안정적)
+    if (isEditMode) {
+        fetch(`${supabaseUrl}/rest/v1/surveys?participant_token=eq.${token}`, {
+            method: "DELETE",
+            headers: {
+                apikey: apiKey,
+                Authorization: "Bearer " + apiKey
+            }
+        }).then(() => insertRows(rows));
+    } else {
+        insertRows(rows);
+    }
+}
+
+function insertRows(rows) {
+    fetch(`${supabaseUrl}/rest/v1/surveys`, {
+        method: "POST",
+        headers: {
+            "apikey": apiKey,
+            "Authorization": "Bearer " + apiKey,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(rows)
+    })
+    .then(() => {
+        alert(isEditMode ? "수정 완료!" : "제출 완료!");
+        const tokenVal = rows[0].participant_token;
+        window.location.href = `result.html?title=${cleanTitle}&token=${tokenVal}`;
+    });
 }
 </script>
 
