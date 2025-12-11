@@ -123,6 +123,11 @@ const params = new URLSearchParams(window.location.search);
 const rawTitle = params.get("title");
 const token = params.get("token");
 
+const saved = localStorage.getItem(`survey_${rawTitle}_my_link`);
+if (!token && saved) {
+    window.location.href = saved;
+}
+
 const cleanTitle = rawTitle ? decodeURIComponent(rawTitle) : "제목 없음";
 document.getElementById("titleDisplay").innerText = cleanTitle + " 설문";
 
@@ -293,3 +298,4 @@ function insertRows(rows) {
 
 </body>
 </html>
+
