@@ -96,6 +96,11 @@ const apiKey = "sb_publishable_gnrYgb7L41g1RT2aEx0k6A_9irp_998";
 const params = new URLSearchParams(window.location.search);
 const title = params.get("title");
 const token = params.get("token");
+    
+const savedLink = localStorage.getItem(`survey_${title}_my_link`);
+if (!token && savedLink) {
+    window.location.href = savedLink;
+}
 
 document.getElementById("title").innerText = title + " 설문 결과";
 
@@ -190,8 +195,15 @@ function summarize(rows) {
 }
 
 start();
+// start() 함수 안 가장 마지막 줄에 추가
+if (token) {
+    const myLink = `result.html?title=${encodeURIComponent(title)}&token=${token}`;
+    localStorage.setItem(`survey_${title}_my_link`, myLink);
+}
+  
 </script>
 
 </body>
 </html>
+
 
